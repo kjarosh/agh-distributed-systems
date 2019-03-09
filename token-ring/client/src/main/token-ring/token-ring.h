@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+const char *tr_logging_address = "224.0.23.182";
+
 enum tr_flags {
     TR_DONTWAIT = 1,
     TR_WAITFORSEND = 2
