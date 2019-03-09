@@ -3,12 +3,14 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "config.h"
+#include "token-ring/token-ring.h"
 
 void print_help(char *program);
 
 int main(int argc, char **argv) {
     char *program = argv[0];
+    int has_token = 0;
+    struct tr_config config;
 
     int opt;
     while ((opt = getopt(argc, argv, ":htP:p:n:")) != -1) {
@@ -18,14 +20,14 @@ int main(int argc, char **argv) {
                 return 0;
 
             case 't':
-                conf_has_token = true;
+                has_token = 1;
                 break;
 
             case 'P':
                 if (strcmp("tcp", optarg) == 0) {
-                    conf_protocol = TCP;
+                    config.proto = TR_TCP;
                 } else if (strcmp("udp", optarg) == 0) {
-                    conf_protocol = UDP;
+                    config.proto = TR_UDP;
                 } else {
                     printf("bad protocol: %s\n", optarg);
                     return -1;
@@ -33,12 +35,13 @@ int main(int argc, char **argv) {
                 break;
 
             case 'p':
-                conf_port = atoi(optarg);
+                config.port = atoi(optarg);
                 break;
 
-            case 'n':
-                conf_neighbor_ip = strtok(optarg, ":");
-                conf_neighbor_port = atoi(strtok(NULL, ":"));
+            case 'n':;
+                char *host = strtok(optarg, ":");
+                strncpy(config.neighbor_host, host, 256);
+                config.neighbor_port = atoi(strtok(NULL, ":"));
                 break;
 
             case ':':
@@ -48,6 +51,10 @@ int main(int argc, char **argv) {
                 printf("unknown option: %c\n", optopt);
                 return -1;
         }
+    }
+
+    if (tr_init(&config, has_token) != 0) {
+        printf("failed to initialize tokrn ring: %s\n", tr_error);
     }
 
     return 0;
@@ -61,5 +68,5 @@ void print_help(char *program) {
     printf("  -t\n");
     printf("  -P tcp|udp\n");
     printf("  -p <port>\n");
-    printf("  -n <neighbor ip>:<neighbor port>\n");
+    printf("  -n <neighbor host>:<neighbor port>\n");
 }
