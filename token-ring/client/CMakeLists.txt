@@ -12,4 +12,6 @@ set(CPACK_PACKAGE_VERSION "1.0.0")
 
 set(CPACK_MONOLITHIC_INSTALL 1)
 
+add_compile_definitions(_GNU_SOURCE)
+
 include(CPack)

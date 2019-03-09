@@ -2,18 +2,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 
-#include "token-ring/token-ring.h"
+#include "token-ring/token_ring.h"
 
 void print_help(char *program);
 
 int main(int argc, char **argv) {
+    srand(time(NULL));
     char *program = argv[0];
     int has_token = 0;
     struct tr_config config;
 
     int opt;
-    while ((opt = getopt(argc, argv, ":htP:p:n:")) != -1) {
+    while ((opt = getopt(argc, argv, ":htP:p:n:i:")) != -1) {
         switch (opt) {
             case 'h':
                 print_help(program);
@@ -40,8 +42,12 @@ int main(int argc, char **argv) {
 
             case 'n':;
                 char *host = strtok(optarg, ":");
-                strncpy(config.neighbor_host, host, 256);
+                strncpy(config.neighbor_ip, host, 256);
                 config.neighbor_port = atoi(strtok(NULL, ":"));
+                break;
+
+            case 'i':;
+                strncpy(config.identifier, optarg, 256);
                 break;
 
             case ':':
@@ -54,7 +60,7 @@ int main(int argc, char **argv) {
     }
 
     if (tr_init(&config, has_token) != 0) {
-        printf("failed to initialize tokrn ring: %s\n", tr_error);
+        printf("failed to initialize token ring: %s\n", tr_error);
     }
 
     return 0;
@@ -66,7 +72,8 @@ void print_help(char *program) {
     printf("options:\n");
     printf("  -h\n");
     printf("  -t\n");
+    printf("  -i <identifier>\n");
     printf("  -P tcp|udp\n");
     printf("  -p <port>\n");
-    printf("  -n <neighbor host>:<neighbor port>\n");
+    printf("  -n <neighbor ipv4>:<neighbor port>\n");
 }
