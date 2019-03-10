@@ -67,10 +67,22 @@ int main(int argc, char **argv) {
     char *message = "asdf";
     tr_identifier to = "K";
     tr_send(message, 4, &to);
+    message = "asdg";
+    tr_send(message, 4, &to);
+    message = "asfg";
+    tr_send(message, 4, &to);
+    message = "a4fg";
+    tr_send(message, 4, &to);
+    tr_send(message, 4, &to);
 
     char buf[128];
     tr_recv(&buf[0], 128, 0, NULL);
-
+    printf("%s\n", &buf[0]);
+    tr_recv(&buf[0], 128, 0, NULL);
+    printf("%s\n", &buf[0]);
+    tr_recv(&buf[0], 128, 0, NULL);
+    printf("%s\n", &buf[0]);
+    tr_recv(&buf[0], 128, 0, NULL);
     printf("%s\n", &buf[0]);
 
     return 0;

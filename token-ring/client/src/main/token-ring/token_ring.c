@@ -107,6 +107,10 @@ void recv_from_neighbor() {
             struct tr_packet_token *packet_token = (struct tr_packet_token *) &buf[0];
             if (packet_token->tid > valid_tid) {
                 valid_tid = packet_token->tid;
+                if (last_rtl != 0 && packet_token->rtl != 0) {
+                    uint16_t rtl_diff = (uint16_t) (packet_token->rtl - last_rtl);
+                    current_ttl = (uint16_t) (rtl_diff + 16);
+                }
             } else if (packet_token->tid < valid_tid) {
                 tr_log("token is invalid, dropping");
                 return;
@@ -115,20 +119,18 @@ void recv_from_neighbor() {
             tr_has_token = 1;
             return;
 
-        case TRP_DATA:
-            tr_log("received data");
-
+        case TRP_DATA:;
             struct tr_packet_data *packet_data = (struct tr_packet_data *) &buf[0];
             size_t packet_size = sizeof(struct tr_packet_data) + packet_data->data_length;
             packet_data = malloc(packet_size);
             memcpy(packet_data, buf, packet_size);
 
             if (strcmp(tr_config.identifier, packet_data->recipient) == 0) {
-                tr_log("packet is for me");
+                tr_log("received data, for me");
                 tr_queue_put(&trq_to_recv, packet_data);
                 pthread_cond_broadcast(&trq_to_recv_cond);
             } else {
-                tr_log("packet is NOT for me");
+                tr_log("received data, NOT for me");
                 tr_queue_put(&trq_to_pass, packet_data);
             }
     }
@@ -215,8 +217,7 @@ int tr_init_socket() {
 int tr_init(const struct tr_config *conf, int has_token) {
     tr_has_token = has_token;
     if (has_token) {
-        // TODO better randomization
-        valid_tid = (uint64_t) rand();
+        valid_tid = tr_random_tid();
     }
     tr_config = *conf;
 

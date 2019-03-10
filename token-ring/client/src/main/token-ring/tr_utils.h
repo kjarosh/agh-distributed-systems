@@ -3,4 +3,6 @@
 
 void tr_log(const char *message);
 
+uint64_t tr_random_tid();
+
 #endif
