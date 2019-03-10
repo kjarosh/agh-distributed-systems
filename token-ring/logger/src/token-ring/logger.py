@@ -11,6 +11,7 @@ tr_packet_log_format = (
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((tr_logging_address, tr_logging_port))
 
     while True:
