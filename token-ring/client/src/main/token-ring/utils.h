@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <sys/time.h>
 
+extern char *tr_error;
+
+void tr_perror();
+
 void tr_log(const char *message);
 
 uint64_t tr_random_tid();

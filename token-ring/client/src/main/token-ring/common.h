@@ -25,8 +25,6 @@ struct tr_config {
 
 extern const char *tr_logging_address;
 
-extern char *tr_error;
-
 extern pthread_t tr_token_thread;
 extern struct tr_config tr_config;
 

@@ -5,6 +5,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+void tr_perror() {
+    perror(tr_error);
+}
+
 void tr_log(const char *message) {
     printf("[TR] %s\n", message);
 }

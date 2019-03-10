@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "utils.h"
 #include "init.h"
 
 int tr_send(const void *buf, size_t len, const tr_identifier *to);
