@@ -75,9 +75,11 @@ void *tr_token_thread_main(void *arg) {
         while (!tr_has_token) {
             recv_from_neighbor();
         }
+        tr_log("received the token");
 
         struct timespec wakeup_point = calc_wakeup_point();
 
+        tr_log("sending packets");
         while (send_to_neighbor(&wakeup_point) == 0);
 
         pass_token_to_neighbor();
@@ -92,7 +94,7 @@ void recv_from_neighbor() {
     char buf[INT16_MAX + sizeof(struct tr_packet_data)];
     size_t buf_len = sizeof(buf) / sizeof(buf[0]);
     ssize_t rt = recv(tr_sock, buf, buf_len, 0);
-    if (rt != 0) {
+    if (rt < 0) {
         tr_log("failed to receive");
         return;
     }
@@ -133,11 +135,9 @@ void recv_from_neighbor() {
 }
 
 int send_to_neighbor(struct timespec *wakeup_point) {
-    tr_log("sending packets");
-
     while (tr_queue_empty(&trq_to_pass)) {
         int rt = pthread_cond_timedwait(&trq_to_pass_cond, &tr_mutex, wakeup_point);
-        if (rt != 0 && errno == ETIMEDOUT) {
+        if (rt == ETIMEDOUT) {
             tr_log("waiting timed out");
             return -1;
         }

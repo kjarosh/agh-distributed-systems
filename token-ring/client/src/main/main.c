@@ -68,10 +68,10 @@ int main(int argc, char **argv) {
     tr_identifier to = "K";
     tr_send(message, 4, &to);
 
-    message = "..........";
-    tr_recv(message, 7, 0, NULL);
+    char buf[128];
+    tr_recv(&buf[0], 128, 0, NULL);
 
-    printf("%s", message);
+    printf("%s\n", &buf[0]);
 
     return 0;
 }
