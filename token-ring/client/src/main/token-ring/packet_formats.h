@@ -16,7 +16,7 @@ enum tr_packet_type {
 struct tr_packet_token {
     uint8_t type;
     uint64_t tid; // token ID
-    uint16_t rtl; // round trip length
+    uint16_t rtc; // round trip counter
 };
 
 struct tr_packet_data {

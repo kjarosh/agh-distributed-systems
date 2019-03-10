@@ -1,10 +1,9 @@
 #include "tr_utils.h"
 
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 void tr_log(const char *message) {
     printf("[TR] %s\n", message);
@@ -23,4 +22,18 @@ uint64_t tr_random_tid() {
 
     close(fd);
     return ret;
+}
+
+struct timespec tr_get_now() {
+    struct timespec ret;
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    TIMEVAL_TO_TIMESPEC(&now, &ret);
+    return ret;
+}
+
+struct timespec tr_calc_wakeup_point() {
+    struct timespec wakeup_point = tr_get_now();
+    wakeup_point.tv_sec += 1;
+    return wakeup_point;
 }

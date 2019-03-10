@@ -6,7 +6,17 @@
 
 #include "token-ring/token_ring.h"
 
-void print_help(char *program);
+void print_help(char *program) {
+    printf("usage:\n");
+    printf("  %s <options>\n", program);
+    printf("options:\n");
+    printf("  -h\n");
+    printf("  -t\n");
+    printf("  -i <identifier>\n");
+    printf("  -P tcp|udp\n");
+    printf("  -p <port>\n");
+    printf("  -n <neighbor ipv4>:<neighbor port>\n");
+}
 
 int main(int argc, char **argv) {
     srand(time(NULL));
@@ -86,16 +96,4 @@ int main(int argc, char **argv) {
     printf("%s\n", &buf[0]);
 
     return 0;
-}
-
-void print_help(char *program) {
-    printf("usage:\n");
-    printf("  %s <options>\n", program);
-    printf("options:\n");
-    printf("  -h\n");
-    printf("  -t\n");
-    printf("  -i <identifier>\n");
-    printf("  -P tcp|udp\n");
-    printf("  -p <port>\n");
-    printf("  -n <neighbor ipv4>:<neighbor port>\n");
 }

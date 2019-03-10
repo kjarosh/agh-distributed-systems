@@ -3,12 +3,11 @@
 #include <pthread.h>
 #include <string.h>
 
-#include <sys/time.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#include "tr_utils.c"
+#include "tr_utils.h"
 
 const char *tr_logging_address = "224.0.23.182";
 
@@ -30,10 +29,10 @@ struct sockaddr_in tr_neighbor_addr;
 int tr_has_token;
 
 /**
- * Last round trip length, read from the token,
+ * Last round trip counter, read from the token,
  * if no information is available this value should be 0.
  */
-uint16_t last_rtl = 0;
+uint16_t last_rtc = 0;
 
 /**
  * TTL currently in use, upon receiving the token
@@ -61,8 +60,6 @@ pthread_mutex_t tr_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t trq_to_pass_cond = PTHREAD_COND_INITIALIZER;
 pthread_cond_t trq_to_recv_cond = PTHREAD_COND_INITIALIZER;
 
-struct timespec calc_wakeup_point();
-
 void recv_from_neighbor();
 
 int send_to_neighbor(struct timespec *wakeup_point);
@@ -75,9 +72,8 @@ void *tr_token_thread_main(void *arg) {
         while (!tr_has_token) {
             recv_from_neighbor();
         }
-        tr_log("received the token");
 
-        struct timespec wakeup_point = calc_wakeup_point();
+        struct timespec wakeup_point = tr_calc_wakeup_point();
 
         tr_log("sending packets");
         while (send_to_neighbor(&wakeup_point) == 0);
@@ -102,14 +98,14 @@ void recv_from_neighbor() {
     uint8_t type = *(uint8_t *) &buf[0];
     switch (type) {
         case TRP_TOKEN:
-            tr_log("received token");
+            tr_log("received the token");
 
             struct tr_packet_token *packet_token = (struct tr_packet_token *) &buf[0];
             if (packet_token->tid > valid_tid) {
                 valid_tid = packet_token->tid;
-                if (last_rtl != 0 && packet_token->rtl != 0) {
-                    uint16_t rtl_diff = (uint16_t) (packet_token->rtl - last_rtl);
-                    current_ttl = (uint16_t) (rtl_diff + 16);
+                if (last_rtc != 0 && packet_token->rtc != 0) {
+                    uint16_t rtc_diff = (uint16_t) (packet_token->rtc - last_rtc);
+                    current_ttl = (uint16_t) (rtc_diff + 16);
                 }
             } else if (packet_token->tid < valid_tid) {
                 tr_log("token is invalid, dropping");
@@ -165,7 +161,7 @@ void pass_token_to_neighbor() {
 
     struct tr_packet_token packet;
     packet.type = TRP_TOKEN;
-    packet.rtl = (uint16_t) (last_rtl + 1);
+    packet.rtc = (uint16_t) (last_rtc + 1);
     packet.tid = valid_tid;
 
     size_t packet_len = sizeof(struct tr_packet_token);
@@ -179,21 +175,8 @@ void pass_token_to_neighbor() {
     }
 }
 
-struct timespec get_now() {
-    struct timespec ret;
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    TIMEVAL_TO_TIMESPEC(&now, &ret);
-    return ret;
-}
-
-struct timespec calc_wakeup_point() {
-    struct timespec wakeup_point = get_now();
-    wakeup_point.tv_sec += 1;
-    return wakeup_point;
-}
-
 int tr_init_socket() {
+    // TODO TCP
     if ((tr_sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         tr_error = "Error creating socket";
         return -1;
@@ -224,7 +207,7 @@ int tr_init(const struct tr_config *conf, int has_token) {
     int rt;
     if ((rt = tr_init_socket()) != 0) {
         return rt;
-    };
+    }
 
     tr_neighbor_addr.sin_family = AF_INET;
     tr_neighbor_addr.sin_port = htons(tr_config.neighbor_port);
@@ -266,7 +249,7 @@ int tr_recv(void *buf, size_t len, int flags, tr_identifier *from) {
     // wait for a packet
     while (tr_queue_empty(&trq_to_recv)) {
         if (flags & TR_DONTWAIT) {
-            struct timespec now = get_now();
+            struct timespec now = tr_get_now();
             int rt = pthread_cond_timedwait(&trq_to_recv_cond, &tr_mutex, &now);
             if (rt != 0 && errno == ETIMEDOUT) {
                 pthread_mutex_unlock(&tr_mutex);
