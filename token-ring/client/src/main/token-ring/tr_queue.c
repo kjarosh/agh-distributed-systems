@@ -20,5 +20,14 @@ struct tr_packet_data *tr_queue_get(tr_queue_t *q) {
 }
 
 void tr_queue_put(tr_queue_t *q, struct tr_packet_data *packet) {
+    struct tr_queue_node_t *node = malloc(sizeof(struct tr_queue_node_t));
+    node->value = packet;
 
+    if (q->last == NULL) {
+        node->next = NULL;
+        q->first = q->last = node;
+    } else {
+        q->last->next = node;
+        q->last = node;
+    }
 }

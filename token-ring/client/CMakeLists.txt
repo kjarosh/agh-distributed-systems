@@ -14,4 +14,7 @@ set(CPACK_MONOLITHIC_INSTALL 1)
 
 add_compile_definitions(_GNU_SOURCE)
 
+find_package(Threads REQUIRED)
+target_link_libraries(token-ring Threads::Threads)
+
 include(CPack)

@@ -37,13 +37,13 @@ int main(int argc, char **argv) {
                 break;
 
             case 'p':
-                config.port = atoi(optarg);
+                config.port = (uint16_t) atoi(optarg);
                 break;
 
             case 'n':;
                 char *host = strtok(optarg, ":");
                 strncpy(config.neighbor_ip, host, 256);
-                config.neighbor_port = atoi(strtok(NULL, ":"));
+                config.neighbor_port = (uint16_t) atoi(strtok(NULL, ":"));
                 break;
 
             case 'i':;
