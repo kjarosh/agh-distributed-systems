@@ -61,7 +61,17 @@ int main(int argc, char **argv) {
 
     if (tr_init(&config, has_token) != 0) {
         printf("failed to initialize token ring: %s\n", tr_error);
+        return -1;
     }
+
+    char *message = "asdf";
+    tr_identifier to = "K";
+    tr_send(message, 4, &to);
+
+    message = "..........";
+    tr_recv(message, 7, 0, NULL);
+
+    printf("%s", message);
 
     return 0;
 }

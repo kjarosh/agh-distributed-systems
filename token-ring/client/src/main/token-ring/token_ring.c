@@ -8,6 +8,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include "tr_utils.c"
+
 const char *tr_logging_address = "224.0.23.182";
 
 char *tr_error = NULL;
@@ -16,6 +18,8 @@ pthread_t tr_token_thread;
 struct tr_config tr_config;
 
 int tr_sock;
+
+int tr_running = 1;
 
 struct sockaddr_in tr_neighbor_addr;
 
@@ -63,61 +67,78 @@ void recv_from_neighbor();
 
 int send_to_neighbor(struct timespec *wakeup_point);
 
+void pass_token_to_neighbor();
+
 void *tr_token_thread_main(void *arg) {
     pthread_mutex_lock(&tr_mutex);
-    while (!tr_has_token) {
-        recv_from_neighbor();
+    while (tr_running) {
+        while (!tr_has_token) {
+            recv_from_neighbor();
+        }
+
+        struct timespec wakeup_point = calc_wakeup_point();
+
+        while (send_to_neighbor(&wakeup_point) == 0);
+
+        pass_token_to_neighbor();
     }
-
-    struct timespec wakeup_point = calc_wakeup_point();
-
-    while (send_to_neighbor(&wakeup_point) == 0);
-
     pthread_mutex_unlock(&tr_mutex);
     return NULL;
 }
 
 void recv_from_neighbor() {
+    tr_log("receiving a packet");
+
     char buf[INT16_MAX + sizeof(struct tr_packet_data)];
     size_t buf_len = sizeof(buf) / sizeof(buf[0]);
     ssize_t rt = recv(tr_sock, buf, buf_len, 0);
     if (rt != 0) {
+        tr_log("failed to receive");
         return;
     }
 
     uint8_t type = *(uint8_t *) &buf[0];
     switch (type) {
-        case TRP_TOKEN:;
+        case TRP_TOKEN:
+            tr_log("received token");
+
             struct tr_packet_token *packet_token = (struct tr_packet_token *) &buf[0];
             if (packet_token->tid > valid_tid) {
                 valid_tid = packet_token->tid;
             } else if (packet_token->tid < valid_tid) {
-                // drop packet, invalid token
+                tr_log("token is invalid, dropping");
                 return;
             }
 
             tr_has_token = 1;
             return;
 
-        case TRP_DATA:;
+        case TRP_DATA:
+            tr_log("received data");
+
             struct tr_packet_data *packet_data = (struct tr_packet_data *) &buf[0];
             size_t packet_size = sizeof(struct tr_packet_data) + packet_data->data_length;
             packet_data = malloc(packet_size);
             memcpy(packet_data, buf, packet_size);
 
             if (strcmp(tr_config.identifier, packet_data->recipient) == 0) {
+                tr_log("packet is for me");
                 tr_queue_put(&trq_to_recv, packet_data);
                 pthread_cond_broadcast(&trq_to_recv_cond);
             } else {
+                tr_log("packet is NOT for me");
                 tr_queue_put(&trq_to_pass, packet_data);
             }
     }
 }
 
 int send_to_neighbor(struct timespec *wakeup_point) {
+    tr_log("sending packets");
+
     while (tr_queue_empty(&trq_to_pass)) {
         int rt = pthread_cond_timedwait(&trq_to_pass_cond, &tr_mutex, wakeup_point);
         if (rt != 0 && errno == ETIMEDOUT) {
+            tr_log("waiting timed out");
             return -1;
         }
     }
@@ -127,13 +148,33 @@ int send_to_neighbor(struct timespec *wakeup_point) {
     size_t packet_len = sizeof(struct tr_packet_data) + packet->data_length;
     ssize_t rt = sendto(tr_sock, packet, packet_len, 0,
                         &tr_neighbor_addr, sizeof(tr_neighbor_addr));
-    if (rt != 0) {
-        // TODO log error
-    }
-
     free(packet);
 
+    if (rt < 0) {
+        tr_log("failed to send a packet");
+        return -1;
+    }
+
     return 0;
+}
+
+void pass_token_to_neighbor() {
+    tr_log("passing the token");
+
+    struct tr_packet_token packet;
+    packet.type = TRP_TOKEN;
+    packet.rtl = (uint16_t) (last_rtl + 1);
+    packet.tid = valid_tid;
+
+    size_t packet_len = sizeof(struct tr_packet_token);
+    ssize_t rt = sendto(tr_sock, &packet, packet_len, 0,
+                        &tr_neighbor_addr, sizeof(tr_neighbor_addr));
+
+    if (rt < 0) {
+        tr_log("failed to pass the token");
+    } else {
+        tr_has_token = 0;
+    }
 }
 
 struct timespec get_now() {
@@ -238,7 +279,9 @@ int tr_recv(void *buf, size_t len, int flags, tr_identifier *from) {
     struct tr_packet_data *packet = tr_queue_get(&trq_to_recv);
     size_t copy_len = packet->data_length < len ? packet->data_length : len;
     memcpy(buf, &packet->data, copy_len);
-    memcpy(from, packet->sender, 256);
+    if (from != NULL) {
+        memcpy(from, packet->sender, 256);
+    }
     free(packet);
 
     pthread_mutex_unlock(&tr_mutex);
