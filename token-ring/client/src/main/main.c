@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
     config.join = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, ":htP:p:n:i:")) != -1) {
+    while ((opt = getopt(argc, argv, ":htP:p:n:i:j")) != -1) {
         switch (opt) {
             case 'h':
                 print_help(program);

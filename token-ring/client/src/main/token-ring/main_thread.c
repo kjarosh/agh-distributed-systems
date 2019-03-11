@@ -9,14 +9,25 @@
 #include "common.h"
 #include "utils.h"
 
-void tr_handle_switch(struct tr_packet_switch *packet_switch) {
+void tr_handle_switch(struct tr_packet_switch *packet_switch,
+                      struct sockaddr_in from) {
     tr_log("switching");
 
-    tr_neighbor_addr.sin_port = htons(packet_switch->neighbor_port);
-    tr_neighbor_addr.sin_addr.s_addr = inet_addr(
-            packet_switch->neighbor_ip);
+    int addr_specified = packet_switch->neighbor_port != 0 &&
+                         strlen(packet_switch->neighbor_ip) > 0;
+    struct sockaddr_in tr_neighbor_addr_old = tr_neighbor_addr;
+    if (addr_specified) {
+        tr_neighbor_addr.sin_port = htons(packet_switch->neighbor_port);
+        tr_neighbor_addr.sin_addr.s_addr =
+                inet_addr(packet_switch->neighbor_ip);
+    } else {
+        tr_neighbor_addr = from;
+    }
 
     if (tr_config.proto == TR_TCP) {
+        // in TCP we need to reconnect
+
+        int tr_neighbor_sock;
         if ((tr_neighbor_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             tr_log("error creating socket");
             return;
@@ -27,6 +38,18 @@ void tr_handle_switch(struct tr_packet_switch *packet_switch) {
             tr_log("error connecting to neighbor");
             return;
         }
+    }
+
+    if (!addr_specified) {
+        // we need to reply with our old neighbor's ip
+        packet_switch->neighbor_port = ntohs(tr_neighbor_addr_old.sin_port);
+        strcpy(packet_switch->neighbor_ip,
+               inet_ntoa(tr_neighbor_addr_old.sin_addr));
+
+        sendto(tr_neighbor_sock,
+               &packet_switch, sizeof(packet_switch), 0,
+               &tr_neighbor_addr, sizeof(tr_neighbor_addr));
+        return;
     }
 }
 
@@ -56,8 +79,8 @@ void tr_handle_data(struct tr_packet_data *packet_data) {
         tr_log("received data, packet expired, dropping");
     } else {
         char log_buf[1024];
-        sprintf(log_buf, "received data, NOT for me, for %s",
-                packet_data->recipient);
+        sprintf(log_buf, "received data, NOT for me, for %s, ttl=%d",
+                packet_data->recipient, packet_data->ttl);
         tr_log(log_buf);
 
         packet_data->ttl -= 1;
@@ -67,6 +90,7 @@ void tr_handle_data(struct tr_packet_data *packet_data) {
 
 void tr_handle_token(struct tr_packet_token *packet_token) {
     tr_log("received the token");
+    tr_logger_send("received the token");
 
     if (packet_token->tid < valid_tid) {
         tr_log("token is invalid, dropping");
@@ -143,7 +167,9 @@ void *tr_thread_aux(void *arg) {
 
         char buf[sizeof(struct tr_packet_switch)];
         size_t buf_len = sizeof(buf) / sizeof(buf[0]);
-        ssize_t rt = recv(tr_client_sock, buf, buf_len, 0);
+        struct sockaddr_in from;
+        ssize_t rt = recvfrom(tr_client_sock, buf, buf_len, 0,
+                              &from, (socklen_t *) sizeof(from));
         if (rt < 0) {
             tr_log("aux: failed to receive");
             usleep(1000);
@@ -152,7 +178,7 @@ void *tr_thread_aux(void *arg) {
 
         uint8_t type = *(uint8_t *) &buf[0];
         if (type == TRP_SWITCH) {
-            tr_handle_switch((struct tr_packet_switch *) &buf[0]);
+            tr_handle_switch((struct tr_packet_switch *) &buf[0], from);
         }
     }
 
@@ -164,7 +190,10 @@ void recv_from_neighbor() {
 
     char buf[INT16_MAX + sizeof(struct tr_packet_data)];
     size_t buf_len = sizeof(buf) / sizeof(buf[0]);
-    ssize_t rt = recv(tr_client_sock, buf, buf_len, 0);
+    struct sockaddr_in from;
+    socklen_t from_len = sizeof(from);
+    ssize_t rt = recvfrom(tr_client_sock, buf, buf_len, 0,
+                          &from, &from_len);
     if (rt < 0) {
         tr_log("failed to receive");
         usleep(1000);
@@ -191,7 +220,7 @@ void recv_from_neighbor() {
             return;
 
         case TRP_SWITCH:
-            tr_handle_switch((struct tr_packet_switch *) &buf[0]);
+            tr_handle_switch((struct tr_packet_switch *) &buf[0], from);
             return;
 
     }

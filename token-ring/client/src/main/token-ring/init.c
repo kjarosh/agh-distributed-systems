@@ -102,6 +102,54 @@ int tr_init_socket() {
     }
 }
 
+int tr_join() {
+    int join_serv_sock;
+    if ((join_serv_sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        tr_error = "Error creating socket (join)";
+        return -1;
+    }
+
+    struct sockaddr_in server_addr;
+    memset(&server_addr, 0, sizeof(server_addr));
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(tr_config.port);
+
+    if (bind(join_serv_sock, (const struct sockaddr *) &server_addr,
+             sizeof(server_addr)) < 0) {
+        tr_error = "Error binding (join)";
+        return -1;
+    }
+
+    struct tr_packet_switch packet;
+    packet.type = TRP_SWITCH;
+    packet.neighbor_ip[0] = 0;
+    packet.neighbor_port = 0;
+
+    if (sendto(join_serv_sock,
+               &packet, sizeof(packet), 0,
+               &tr_neighbor_addr, sizeof(tr_neighbor_addr)) < 0) {
+        tr_error = "Error sending switch";
+        return -1;
+    }
+
+    if (recv(join_serv_sock, &packet, sizeof(packet), 0) < 0) {
+        tr_error = "Error receiving switch";
+        return -1;
+    }
+
+    if (packet.type != TRP_SWITCH) {
+        tr_error = "Invalid packet while switching";
+        return -1;
+    }
+
+    tr_neighbor_addr.sin_port = htons(packet.neighbor_port);
+    tr_neighbor_addr.sin_addr.s_addr = inet_addr(packet.neighbor_ip);
+
+    return 0;
+}
+
 int tr_init(const struct tr_config *conf, int has_token) {
     tr_has_token = has_token;
     if (has_token) {
@@ -115,6 +163,10 @@ int tr_init(const struct tr_config *conf, int has_token) {
     tr_neighbor_addr.sin_addr.s_addr = inet_addr(tr_config.neighbor_ip);
 
     int rt;
+    if (tr_config.join && (rt = tr_join()) != 0) {
+        return rt;
+    }
+
     if ((rt = tr_init_socket()) != 0) {
         return rt;
     }

@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 void tr_perror() {
     perror(tr_error);
@@ -14,7 +15,9 @@ void tr_perror() {
 
 void tr_log(const char *message) {
     printf("[TR] %s\n", message);
-    tr_logger_send(message);
+    if (errno) {
+        perror("");
+    }
 }
 
 uint64_t tr_random_tid() {
