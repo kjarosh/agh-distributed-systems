@@ -79,7 +79,7 @@ void tr_handle_data(struct tr_packet_data *packet_data) {
         tr_log("received data, packet expired, dropping");
     } else {
         char log_buf[1024];
-        sprintf(log_buf, "received data, NOT for me, for %s, ttl=%d",
+        sprintf(log_buf, "received data, not for me, for %s, ttl=%d",
                 packet_data->recipient, packet_data->ttl);
         tr_log(log_buf);
 
@@ -88,9 +88,9 @@ void tr_handle_data(struct tr_packet_data *packet_data) {
     }
 }
 
-void tr_handle_token(struct tr_packet_token *packet_token) {
+void tr_handle_token(struct tr_packet_token *packet_token,
+                     struct sockaddr_in from) {
     tr_log("received the token");
-    tr_logger_send("received the token");
 
     if (packet_token->tid < valid_tid) {
         tr_log("token is invalid, dropping");
@@ -98,21 +98,28 @@ void tr_handle_token(struct tr_packet_token *packet_token) {
     } else if (packet_token->rtc == last_rtc) {
         tr_log("token is duplicated, dropping");
         return;
-    } else if (packet_token->tid > valid_tid) {
+    } else if (packet_token->tid >= valid_tid) {
         valid_tid = packet_token->tid;
         if (last_rtc != 0 && packet_token->rtc != 0) {
             uint16_t rtc_diff = (uint16_t) (packet_token->rtc -
                                             last_rtc);
             current_ttl = (uint16_t) (rtc_diff + 16);
         }
+
+        tr_has_token = 1;
+        tr_logger_send("received the token");
     }
 
-    tr_has_token = 1;
+    tr_log("sending ack");
+    struct tr_packet_token_ack packet;
+    packet.type = TRP_TOKEN_ACK;
+    sendto(tr_client_sock, &packet, sizeof(packet), 0,
+           &from, sizeof(from));
 }
 
 // =============================================================================
 
-void recv_from_neighbor();
+void recv_from_client();
 
 int send_to_neighbor(struct timespec *wakeup_point);
 
@@ -122,7 +129,7 @@ void *tr_thread_main(void *arg) {
     pthread_mutex_lock(&tr_mutex);
     while (tr_running) {
         while (!tr_has_token) {
-            recv_from_neighbor();
+            recv_from_client();
         }
 
         struct timespec wakeup_point = tr_calc_wakeup_point();
@@ -137,10 +144,10 @@ void *tr_thread_main(void *arg) {
 }
 
 void *tr_thread_aux(void *arg) {
-    if (tr_config.proto == TR_UDP) {
+    //if (tr_config.proto == TR_UDP) {
         // for UDP we do not need to create a separate thread
         return NULL;
-    }
+    //}
 
 
     int aux_server_sock;
@@ -168,8 +175,9 @@ void *tr_thread_aux(void *arg) {
         char buf[sizeof(struct tr_packet_switch)];
         size_t buf_len = sizeof(buf) / sizeof(buf[0]);
         struct sockaddr_in from;
+        socklen_t from_len = sizeof(from);
         ssize_t rt = recvfrom(tr_client_sock, buf, buf_len, 0,
-                              &from, (socklen_t *) sizeof(from));
+                              &from, &from_len);
         if (rt < 0) {
             tr_log("aux: failed to receive");
             usleep(1000);
@@ -185,7 +193,7 @@ void *tr_thread_aux(void *arg) {
     return NULL;
 }
 
-void recv_from_neighbor() {
+void recv_from_client() {
     tr_log("receiving a packet");
 
     char buf[INT16_MAX + sizeof(struct tr_packet_data)];
@@ -203,7 +211,7 @@ void recv_from_neighbor() {
     uint8_t type = *(uint8_t *) &buf[0];
     switch (type) {
         case TRP_TOKEN:
-            tr_handle_token((struct tr_packet_token *) &buf[0]);
+            tr_handle_token((struct tr_packet_token *) &buf[0], from);
             return;
 
         case TRP_DATA:;
@@ -239,7 +247,7 @@ int send_to_neighbor(struct timespec *wakeup_point) {
     struct tr_packet_data *packet = tr_queue_get(&trq_to_pass);
 
     size_t packet_len = sizeof(struct tr_packet_data) + packet->data_length;
-    ssize_t rt = sendto(tr_client_sock, packet, packet_len, 0,
+    ssize_t rt = sendto(tr_neighbor_sock, packet, packet_len, 0,
                         &tr_neighbor_addr, sizeof(tr_neighbor_addr));
     free(packet);
 
@@ -252,20 +260,38 @@ int send_to_neighbor(struct timespec *wakeup_point) {
 }
 
 void pass_token_to_neighbor() {
-    tr_log("passing the token");
+    char log_buf[1024];
+    sprintf(log_buf, "passing the token to %s:%d",
+            inet_ntoa(tr_neighbor_addr.sin_addr),
+            ntohs(tr_neighbor_addr.sin_port));
+    tr_log(log_buf);
 
     struct tr_packet_token packet;
     packet.type = TRP_TOKEN;
     packet.rtc = (uint16_t) (last_rtc + 1);
     packet.tid = valid_tid;
 
-    size_t packet_len = sizeof(struct tr_packet_token);
-    ssize_t rt = sendto(tr_client_sock, &packet, packet_len, 0,
-                        &tr_neighbor_addr, sizeof(tr_neighbor_addr));
+    int token_ackd = 0;
+    while (!token_ackd) {
+        size_t packet_len = sizeof(struct tr_packet_token);
+        ssize_t rt = sendto(tr_neighbor_sock, &packet, packet_len, 0,
+                            &tr_neighbor_addr, sizeof(tr_neighbor_addr));
+        usleep(100);
+        if (rt < 0) {
+            tr_log("failed to pass the token");
+            continue;
+        }
 
-    if (rt < 0) {
-        tr_log("failed to pass the token");
-    } else {
-        tr_has_token = 0;
+        struct tr_packet_token_ack packet_ack;
+        if (recv(tr_neighbor_sock, &packet_ack, sizeof(packet_ack),
+                 MSG_DONTWAIT) > 0 &&
+            packet_ack.type == TRP_TOKEN_ACK) {
+            token_ackd = 1;
+        } else {
+            usleep(500);
+        }
     }
+
+    tr_log("token passed");
+    tr_has_token = 0;
 }

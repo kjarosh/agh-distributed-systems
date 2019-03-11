@@ -81,16 +81,19 @@ int main(int argc, char **argv) {
     }
 
     char *message = "asdf";
-    tr_identifier to = "K";
+    tr_identifier to = "B";
     if (tr_send(message, 4, &to) != 0) {
         tr_perror();
     }
 
-    char buf[128];
-    if (tr_recv(&buf[0], 128, 0, NULL) != 0) {
-        tr_perror();
+    int to_recv = 4;
+    while (to_recv-- > 0) {
+        char buf[128];
+        if (tr_recv(&buf[0], 128, 0, NULL) != 0) {
+            tr_perror();
+        }
+        printf("%s\n", &buf[0]);
     }
-    printf("%s\n", &buf[0]);
 
     return 0;
 }
