@@ -37,7 +37,7 @@ void recv_from_neighbor() {
 
     char buf[INT16_MAX + sizeof(struct tr_packet_data)];
     size_t buf_len = sizeof(buf) / sizeof(buf[0]);
-    ssize_t rt = recv(tr_read_sock, buf, buf_len, 0);
+    ssize_t rt = recv(tr_client_sock, buf, buf_len, 0);
     if (rt < 0) {
         tr_log("failed to receive");
         usleep(1000);
@@ -100,7 +100,7 @@ int send_to_neighbor(struct timespec *wakeup_point) {
     struct tr_packet_data *packet = tr_queue_get(&trq_to_pass);
 
     size_t packet_len = sizeof(struct tr_packet_data) + packet->data_length;
-    ssize_t rt = sendto(tr_read_sock, packet, packet_len, 0,
+    ssize_t rt = sendto(tr_client_sock, packet, packet_len, 0,
                         &tr_neighbor_addr, sizeof(tr_neighbor_addr));
     free(packet);
 
@@ -121,7 +121,7 @@ void pass_token_to_neighbor() {
     packet.tid = valid_tid;
 
     size_t packet_len = sizeof(struct tr_packet_token);
-    ssize_t rt = sendto(tr_read_sock, &packet, packet_len, 0,
+    ssize_t rt = sendto(tr_client_sock, &packet, packet_len, 0,
                         &tr_neighbor_addr, sizeof(tr_neighbor_addr));
 
     if (rt < 0) {

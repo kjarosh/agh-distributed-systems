@@ -28,9 +28,14 @@ extern const char *tr_logging_address;
 extern pthread_t tr_token_thread;
 extern struct tr_config tr_config;
 
-extern int tr_read_sock;
+/// server sock, listening for clients
+extern int tr_server_sock;
 
-extern int tr_write_sock;
+/// client connected to the server
+extern int tr_client_sock;
+
+/// neighbor socket
+extern int tr_neighbor_sock;
 
 extern int tr_running;
 

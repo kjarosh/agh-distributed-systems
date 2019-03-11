@@ -41,3 +41,7 @@ struct timespec tr_calc_wakeup_point() {
     wakeup_point.tv_sec += 1;
     return wakeup_point;
 }
+
+void tr_logger_send(char *message){
+
+}

@@ -7,9 +7,11 @@ char *tr_error = NULL;
 pthread_t tr_token_thread;
 struct tr_config tr_config;
 
-int tr_read_sock;
+int tr_server_sock;
 
-int tr_write_sock;
+int tr_client_sock;
+
+int tr_neighbor_sock;
 
 int tr_running = 1;
 
