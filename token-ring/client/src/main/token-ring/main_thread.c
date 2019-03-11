@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <stdio.h>
 #include "common.h"
 #include "utils.h"
 
@@ -80,7 +81,9 @@ void recv_from_neighbor() {
             } else if (packet_data->ttl == 0) {
                 tr_log("received data, packet expired, dropping");
             } else {
-                tr_log("received data, NOT for me");
+                char log_buf[1024];
+                sprintf(log_buf, "received data, NOT for me, for %s", packet_data->recipient);
+                tr_log(log_buf);
 
                 packet_data->ttl -= 1;
                 tr_queue_put(&trq_to_pass, packet_data);

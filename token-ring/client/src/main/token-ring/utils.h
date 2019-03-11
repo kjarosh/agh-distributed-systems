@@ -16,6 +16,6 @@ struct timespec tr_get_now();
 
 struct timespec tr_calc_wakeup_point();
 
-void tr_logger_send(char *message);
+void tr_logger_send(const char *message);
 
 #endif

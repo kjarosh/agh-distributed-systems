@@ -9,8 +9,7 @@ typedef char tr_identifier[256];
 enum tr_packet_type {
     TRP_TOKEN = 0,
     TRP_TOKEN_ACK = 1,
-    TRP_DATA = 2,
-    TRP_LOG = 3
+    TRP_DATA = 2
 };
 
 struct tr_packet_token {
@@ -42,10 +41,9 @@ struct tr_packet_switch {
 };
 
 struct tr_packet_log {
-    uint8_t type;
-    uint8_t sender_id;
+    tr_identifier sender;
     uint64_t timestamp;
-    char message[128];
+    char message[512];
 };
 
 #endif

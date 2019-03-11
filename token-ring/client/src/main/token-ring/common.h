@@ -23,8 +23,6 @@ struct tr_config {
     uint16_t neighbor_port;
 };
 
-extern const char *tr_logging_address;
-
 extern pthread_t tr_token_thread;
 extern struct tr_config tr_config;
 

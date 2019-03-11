@@ -1,7 +1,5 @@
 #include "common.h"
 
-const char *tr_logging_address = "224.0.23.182";
-
 char *tr_error = NULL;
 
 pthread_t tr_token_thread;

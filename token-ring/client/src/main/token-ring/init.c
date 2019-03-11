@@ -115,6 +115,7 @@ int tr_init(const struct tr_config *conf, int has_token) {
         valid_tid = tr_random_tid();
     }
     tr_config = *conf;
+    tr_log("initializing");
 
     tr_neighbor_addr.sin_family = AF_INET;
     tr_neighbor_addr.sin_port = htons(tr_config.neighbor_port);
