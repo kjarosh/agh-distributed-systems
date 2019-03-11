@@ -3,6 +3,7 @@
 char *tr_error = NULL;
 
 pthread_t tr_token_thread;
+pthread_t tr_aux_thread;
 struct tr_config tr_config;
 
 int tr_server_sock;

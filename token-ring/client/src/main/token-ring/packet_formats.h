@@ -9,7 +9,9 @@ typedef char tr_identifier[256];
 enum tr_packet_type {
     TRP_TOKEN = 0,
     TRP_TOKEN_ACK = 1,
-    TRP_DATA = 2
+    TRP_DATA = 2,
+    TRP_SWITCH = 3,
+    TRP_RESET = 4
 };
 
 struct tr_packet_token {
@@ -31,16 +33,25 @@ struct tr_packet_data {
     char data[0];
 };
 
+/**
+ * This packets instructs the recipient to switch to
+ * the given neighbor.
+ */
 struct tr_packet_switch {
     uint8_t type;
-    uint16_t ttl;
-    tr_identifier sender;
-    tr_identifier recipient;
-    uint16_t data_length;
-    char data[0];
+    char neighbor_ip[256];
+    uint16_t neighbor_port;
 };
 
-struct tr_packet_log {
+/**
+ * This packets instructs the recipient to reset all
+ * established connections with clients.
+ */
+struct tr_packet_reset {
+    uint8_t type;
+};
+
+struct tr_packet_log{
     tr_identifier sender;
     uint64_t timestamp;
     char message[512];

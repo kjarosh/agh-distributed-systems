@@ -20,7 +20,7 @@ void tr_log(const char *message) {
 uint64_t tr_random_tid() {
     uint64_t ret;
     int fd;
-    if ((fd = open("/dev/random", O_RDONLY)) != 0) {
+    if ((fd = open("/dev/urandom", O_RDONLY)) != 0) {
         return (uint64_t) rand();
     }
 

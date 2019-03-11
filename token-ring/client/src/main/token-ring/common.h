@@ -21,9 +21,11 @@ struct tr_config {
     uint16_t port;
     char neighbor_ip[256];
     uint16_t neighbor_port;
+    int join;
 };
 
 extern pthread_t tr_token_thread;
+extern pthread_t tr_aux_thread;
 extern struct tr_config tr_config;
 
 /// server sock, listening for clients

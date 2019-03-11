@@ -10,8 +10,9 @@ void print_help(char *program) {
     printf("usage:\n");
     printf("  %s <options>\n", program);
     printf("options:\n");
-    printf("  -h\n");
-    printf("  -t\n");
+    printf("  -h  (help)\n");
+    printf("  -t  (i have the token)\n");
+    printf("  -j  (join to a token ring)\n");
     printf("  -i <identifier>\n");
     printf("  -P tcp|udp\n");
     printf("  -p <port>\n");
@@ -23,6 +24,7 @@ int main(int argc, char **argv) {
     char *program = argv[0];
     int has_token = 0;
     struct tr_config config;
+    config.join = 0;
 
     int opt;
     while ((opt = getopt(argc, argv, ":htP:p:n:i:")) != -1) {
@@ -56,8 +58,12 @@ int main(int argc, char **argv) {
                 config.neighbor_port = (uint16_t) atoi(strtok(NULL, ":"));
                 break;
 
-            case 'i':;
+            case 'i':
                 strncpy(config.identifier, optarg, 256);
+                break;
+
+            case 'j':
+                config.join = 1;
                 break;
 
             case ':':
