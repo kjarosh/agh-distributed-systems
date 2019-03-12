@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="token-ring tcp A" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-i A -P tcp -p 25001 -n 127.0.0.1:25002" PASS_PARENT_ENVS_2="true" PROJECT_NAME="token-ring" TARGET_NAME="token-ring" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="token-ring" RUN_TARGET_NAME="token-ring">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>
