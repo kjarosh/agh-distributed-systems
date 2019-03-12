@@ -110,11 +110,13 @@ void tr_handle_token(struct tr_packet_token *packet_token,
         tr_logger_send("received the token");
     }
 
-    tr_log("sending ack");
-    struct tr_packet_token_ack packet;
-    packet.type = TRP_TOKEN_ACK;
-    sendto(tr_client_sock, &packet, sizeof(packet), 0,
-           &from, sizeof(from));
+    if (tr_config.proto == TR_UDP) {
+        tr_log("sending ack");
+        struct tr_packet_token_ack packet;
+        packet.type = TRP_TOKEN_ACK;
+        sendto(tr_client_sock, &packet, sizeof(packet), 0,
+               &from, sizeof(from));
+    }
 }
 
 // =============================================================================
@@ -281,6 +283,8 @@ void pass_token_to_neighbor() {
             tr_log("failed to pass the token");
             continue;
         }
+
+        if (tr_config.proto == TR_TCP) break;
 
         struct tr_packet_token_ack packet_ack;
         if (recv(tr_neighbor_sock, &packet_ack, sizeof(packet_ack),
