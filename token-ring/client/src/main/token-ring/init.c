@@ -176,10 +176,10 @@ int tr_init(const struct tr_config *conf, int has_token) {
         return 1;
     }
 
-    if (pthread_create(&tr_aux_thread, NULL, tr_thread_aux, NULL)) {
+    /*if (pthread_create(&tr_aux_thread, NULL, tr_thread_aux, NULL)) {
         tr_error = "Error creating aux thread";
         return 1;
-    }
+    }*/
 
     return 0;
 }

@@ -151,7 +151,6 @@ void *tr_thread_aux(void *arg) {
     return NULL;
     }
 
-
     int aux_server_sock;
     if ((aux_server_sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         tr_log("error creating aux socket");
