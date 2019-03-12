@@ -15,9 +15,6 @@ void tr_perror() {
 
 void tr_log(const char *message) {
     printf("[TR] %s\n", message);
-    if (errno) {
-        perror("");
-    }
 }
 
 uint64_t tr_random_tid() {

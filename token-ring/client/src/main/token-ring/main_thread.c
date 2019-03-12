@@ -98,7 +98,7 @@ void tr_handle_token(struct tr_packet_token *packet_token,
     } else if (packet_token->rtc == last_rtc) {
         tr_log("token is duplicated, dropping");
         return;
-    } else if (packet_token->tid >= valid_tid) {
+    } else {
         valid_tid = packet_token->tid;
         if (last_rtc != 0 && packet_token->rtc != 0) {
             uint16_t rtc_diff = (uint16_t) (packet_token->rtc -
@@ -144,10 +144,10 @@ void *tr_thread_main(void *arg) {
 }
 
 void *tr_thread_aux(void *arg) {
-    //if (tr_config.proto == TR_UDP) {
-        // for UDP we do not need to create a separate thread
-        return NULL;
-    //}
+    if (tr_config.proto == TR_UDP) {
+    // for UDP we do not need to create a separate thread
+    return NULL;
+    }
 
 
     int aux_server_sock;
@@ -271,8 +271,8 @@ void pass_token_to_neighbor() {
     packet.rtc = (uint16_t) (last_rtc + 1);
     packet.tid = valid_tid;
 
-    int token_ackd = 0;
-    while (!token_ackd) {
+    int tries = 5;
+    while (tries-- > 0) {
         size_t packet_len = sizeof(struct tr_packet_token);
         ssize_t rt = sendto(tr_neighbor_sock, &packet, packet_len, 0,
                             &tr_neighbor_addr, sizeof(tr_neighbor_addr));
@@ -286,9 +286,7 @@ void pass_token_to_neighbor() {
         if (recv(tr_neighbor_sock, &packet_ack, sizeof(packet_ack),
                  MSG_DONTWAIT) > 0 &&
             packet_ack.type == TRP_TOKEN_ACK) {
-            token_ackd = 1;
-        } else {
-            usleep(500);
+            break;
         }
     }
 
