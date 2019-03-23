@@ -1,25 +1,22 @@
 package pl.edu.agh.student.kjarosz.distributedsystems.hashmap;
 
 import org.jgroups.JChannel;
-import org.jgroups.MergeView;
-import org.jgroups.Message;
 import org.jgroups.View;
 
 import java.util.List;
 
 class MapMerger implements Runnable {
     private final JChannel channel;
-    private final MergeView view;
+    private final List<View> views;
 
-    MapMerger(JChannel channel, MergeView view) {
+    MapMerger(JChannel channel, List<View> views) {
         this.channel = channel;
-        this.view = view;
+        this.views = views;
     }
 
     @Override
     public void run() {
-        List<View> subgroups = view.getSubgroups();
-        subgroups.forEach(this::mergeView);
+        views.forEach(this::mergeView);
 
     }
 
@@ -29,7 +26,7 @@ class MapMerger implements Runnable {
         }
 
         try {
-            channel.send(new Message(view.getCoord(), new SynchronizedAction.RequestMerge()));
+            channel.getState(view.getCoord(), MapSynchronizationService.TIMEOUT);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

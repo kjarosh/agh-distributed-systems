@@ -3,7 +3,7 @@ package pl.edu.agh.student.kjarosz.distributedsystems.hashmap;
 import java.util.Scanner;
 
 public class Main {
-    private DistributedMap map;
+    private final DistributedMap map;
 
     public static void main(String[] args) throws Exception {
         try (DistributedMap map = new DistributedMap("distributed-map", "230.100.200.123")) {
@@ -18,10 +18,14 @@ public class Main {
     private void run() {
         Scanner s = new Scanner(System.in);
         while (!Thread.interrupted()) {
-            String[] cmdline = s.nextLine().split("\\s+");
-            if (cmdline.length == 0) continue;
+            System.out.print("> ");
+            System.out.flush();
+            String line = s.nextLine();
+            if (line.isEmpty()) continue;
+            String[] cmdline = line.split("\\s+");
 
             interpret(cmdline);
+            System.err.flush();
         }
     }
 

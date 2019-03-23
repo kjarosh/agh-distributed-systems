@@ -2,21 +2,27 @@ package pl.edu.agh.student.kjarosz.distributedsystems.hashmap;
 
 import org.jgroups.*;
 import org.jgroups.protocols.*;
-import org.jgroups.protocols.pbcast.FLUSH;
-import org.jgroups.protocols.pbcast.GMS;
-import org.jgroups.protocols.pbcast.NAKACK2;
-import org.jgroups.protocols.pbcast.STABLE;
+import org.jgroups.protocols.pbcast.*;
+import org.jgroups.stack.Protocol;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 class MapSynchronizationService implements AutoCloseable {
-    private final JChannel channel;
+    static final int TIMEOUT = 12000;
+
+    private final String clusterName;
+    private final String address;
+
+    private JChannel channel;
 
     private Consumer<String> removeListener = v -> {
 
@@ -30,38 +36,17 @@ class MapSynchronizationService implements AutoCloseable {
 
     };
 
-    private Consumer<InputStream> stateDeserializer = v -> {
-
-    };
-
     private Consumer<InputStream> merger = v -> {
 
     };
 
-    MapSynchronizationService(String clusterName, String address) throws Exception {
-        channel = new JChannel(false);
-        channel.getProtocolStack()
-                .addProtocol(new UDP()
-                        .setValue("mcast_group_addr", InetAddress.getByName(address)))
-                .addProtocol(new PING())
-                .addProtocol(new MERGE3())
-                .addProtocol(new FD_SOCK())
-                .addProtocol(new FD_ALL()
-                        .setValue("timeout", 12000)
-                        .setValue("interval", 3000))
-                .addProtocol(new VERIFY_SUSPECT())
-                .addProtocol(new BARRIER())
-                .addProtocol(new NAKACK2())
-                .addProtocol(new UNICAST3())
-                .addProtocol(new STABLE())
-                .addProtocol(new GMS())
-                .addProtocol(new UFC())
-                .addProtocol(new MFC())
-                .addProtocol(new FRAG2())
-                .addProtocol(new SEQUENCER())
-                .addProtocol(new FLUSH())
-                .init();
+    MapSynchronizationService(String clusterName, String address) {
+        this.clusterName = clusterName;
+        this.address = address;
+    }
 
+    public void init() throws Exception {
+        channel = new JChannel(getProtocols(address));
         channel.setReceiver(new ReceiverAdapter() {
             @Override
             public void receive(Message msg) {
@@ -75,19 +60,48 @@ class MapSynchronizationService implements AutoCloseable {
 
             @Override
             public void setState(InputStream input) {
-                stateDeserializer.accept(input);
+                merger.accept(input);
             }
 
             @Override
             public void viewAccepted(View view) {
+                List<View> views;
                 if (view instanceof MergeView) {
                     MergeView mergeView = (MergeView) view;
-                    new Thread(new MapMerger(channel, mergeView)).start();
+                    views = mergeView.getSubgroups();
+                } else {
+                    views = Collections.singletonList(view);
                 }
+
+                new Thread(new MapMerger(channel, views)).start();
             }
         });
         channel.connect(clusterName);
-        channel.getState(null, 1000);
+        channel.getState(null, MapSynchronizationService.TIMEOUT);
+    }
+
+    private List<Protocol> getProtocols(String address) throws UnknownHostException {
+        return Arrays.asList(
+                new UDP()
+                        .setValue("mcast_group_addr", InetAddress.getByName(address)),
+                new PING(),
+                new MERGE3(),
+                new FD_SOCK(),
+                new FD_ALL()
+                        .setValue("timeout", TIMEOUT)
+                        .setValue("interval", 3000),
+                new VERIFY_SUSPECT(),
+                new BARRIER(),
+                new NAKACK2(),
+                new UNICAST3(),
+                new STABLE(),
+                new GMS(),
+                new UFC(),
+                new MFC(),
+                new FRAG2(),
+                new SEQUENCER(),
+                new FLUSH(),
+                new STATE_TRANSFER());
     }
 
     private void receiveMessage(Message msg) {
@@ -98,9 +112,6 @@ class MapSynchronizationService implements AutoCloseable {
         } else if (obj instanceof SynchronizedAction.Put) {
             SynchronizedAction.Put put = (SynchronizedAction.Put) obj;
             putListener.accept(put.getKey(), put.getValue());
-        } else if (obj instanceof SynchronizedAction.Merge) {
-            SynchronizedAction.Merge merge = (SynchronizedAction.Merge) obj;
-            merger.accept(new ByteArrayInputStream(merge.getData()));
         }
     }
 
@@ -114,10 +125,6 @@ class MapSynchronizationService implements AutoCloseable {
 
     void setStateSerializer(Consumer<OutputStream> stateSerializer) {
         this.stateSerializer = Objects.requireNonNull(stateSerializer);
-    }
-
-    void setStateDeserializer(Consumer<InputStream> stateDeserializer) {
-        this.stateDeserializer = Objects.requireNonNull(stateDeserializer);
     }
 
     void setMerger(Consumer<InputStream> merger) {

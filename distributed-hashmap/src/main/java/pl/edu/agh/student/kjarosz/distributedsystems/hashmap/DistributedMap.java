@@ -1,41 +1,52 @@
 package pl.edu.agh.student.kjarosz.distributedsystems.hashmap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DistributedMap implements SimpleStringMap, AutoCloseable {
-    private final HashMap<String, Integer> localCopy = new HashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(DistributedMap.class);
+
+    private final ConcurrentHashMap<String, Integer> localCopy = new ConcurrentHashMap<>();
     private final MapSynchronizationService syncService;
 
     public DistributedMap(String clusterName, String address) throws Exception {
+        logger.info("Creating a distributed map");
         syncService = new MapSynchronizationService(clusterName, address);
         syncService.setRemoveListener(localCopy::remove);
         syncService.setPutListener(localCopy::put);
         syncService.setStateSerializer(this::serializeMap);
-        syncService.setStateDeserializer(this::deserializeMap);
-        syncService.setMerger(inputStream -> merge(localCopy, inputStream));
+        syncService.setMerger(this::merge);
+        syncService.init();
     }
 
     private void serializeMap(OutputStream outputStream) {
         try {
+            logger.debug("Serializing map");
             new ObjectOutputStream(outputStream)
-                    .writeObject(localCopy);
+                    .writeObject(new HashMap<>(localCopy));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void deserializeMap(InputStream inputStream) {
-        HashMap<String, Integer> received = new HashMap<>();
-        merge(received, inputStream);
+    private void merge(InputStream inputStream) {
+        HashMap<String, Integer> toMerge = new HashMap<>();
+        deserializeInto(toMerge, inputStream);
 
-        localCopy.clear();
-        localCopy.putAll(received);
+        logger.debug("Received a map to merge: " + toMerge);
+
+        localCopy.putAll(toMerge);
     }
 
-    private void merge(HashMap<String, Integer> map, InputStream inputStream) {
+    private void deserializeInto(Map<String, Integer> map, InputStream inputStream) {
         try {
+
             Object obj = new ObjectInputStream(inputStream).readObject();
             ((HashMap<?, ?>) obj).forEach((key, value) ->
                     map.put((String) key, (Integer) value));
