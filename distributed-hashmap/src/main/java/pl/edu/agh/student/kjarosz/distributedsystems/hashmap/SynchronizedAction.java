@@ -1,9 +1,12 @@
 package pl.edu.agh.student.kjarosz.distributedsystems.hashmap;
 
+import org.apache.commons.io.IOUtils;
 import org.jgroups.util.Streamable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.IOException;
+import java.io.InputStream;
 
 interface SynchronizedAction extends Streamable {
     class Remove implements SynchronizedAction {
@@ -15,6 +18,10 @@ interface SynchronizedAction extends Streamable {
 
         Remove(String key) {
             this.key = key;
+        }
+
+        String getKey() {
+            return key;
         }
 
         @Override
@@ -41,6 +48,14 @@ interface SynchronizedAction extends Streamable {
             this.value = value;
         }
 
+        String getKey() {
+            return key;
+        }
+
+        Integer getValue() {
+            return value;
+        }
+
         @Override
         public void writeTo(DataOutput out) throws Exception {
             out.writeUTF(key);
@@ -58,6 +73,50 @@ interface SynchronizedAction extends Streamable {
             } else {
                 value = in.readInt();
             }
+        }
+    }
+
+    class RequestMerge implements SynchronizedAction {
+        RequestMerge() {
+
+        }
+
+        @Override
+        public void writeTo(DataOutput out) {
+
+        }
+
+        @Override
+        public void readFrom(DataInput in) {
+
+        }
+    }
+
+    class Merge implements SynchronizedAction {
+        private byte[] data;
+
+        Merge() {
+
+        }
+
+        Merge(InputStream inputStream) throws IOException {
+            data = IOUtils.toByteArray(inputStream);
+        }
+
+        byte[] getData() {
+            return data;
+        }
+
+        @Override
+        public void writeTo(DataOutput out) throws Exception {
+            out.writeInt(data.length);
+            out.write(data);
+        }
+
+        @Override
+        public void readFrom(DataInput in) throws Exception {
+            data = new byte[in.readInt()];
+            in.readFully(data);
         }
     }
 }
