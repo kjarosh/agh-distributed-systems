@@ -8,8 +8,8 @@ public class DistributedMap implements SimpleStringMap, AutoCloseable {
     private final HashMap<String, Integer> localCopy = new HashMap<>();
     private final MapSynchronizationService syncService;
 
-    public DistributedMap(String clusterName) throws Exception {
-        syncService = new MapSynchronizationService(clusterName);
+    public DistributedMap(String clusterName, String address) throws Exception {
+        syncService = new MapSynchronizationService(clusterName, address);
         syncService.setRemoveListener(localCopy::remove);
         syncService.setPutListener(localCopy::put);
         syncService.setStateSerializer(this::serializeMap);

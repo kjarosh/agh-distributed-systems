@@ -10,6 +10,7 @@ import org.jgroups.protocols.pbcast.STABLE;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -37,10 +38,11 @@ class MapSynchronizationService implements AutoCloseable {
 
     };
 
-    MapSynchronizationService(String clusterName) throws Exception {
+    MapSynchronizationService(String clusterName, String address) throws Exception {
         channel = new JChannel(false);
         channel.getProtocolStack()
-                .addProtocol(new UDP())
+                .addProtocol(new UDP()
+                        .setValue("mcast_group_addr", InetAddress.getByName(address)))
                 .addProtocol(new PING())
                 .addProtocol(new MERGE3())
                 .addProtocol(new FD_SOCK())
