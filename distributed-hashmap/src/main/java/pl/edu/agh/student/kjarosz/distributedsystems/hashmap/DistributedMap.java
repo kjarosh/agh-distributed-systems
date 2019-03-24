@@ -21,7 +21,7 @@ public class DistributedMap implements SimpleStringMap, AutoCloseable {
         syncService.setRemoveListener(localCopy::remove);
         syncService.setPutListener(localCopy::put);
         syncService.setStateSerializer(this::serializeMap);
-        syncService.setMerger(this::merge);
+        syncService.setStateDeserializer(this::deserializeMap);
         syncService.init();
     }
 
@@ -35,13 +35,14 @@ public class DistributedMap implements SimpleStringMap, AutoCloseable {
         }
     }
 
-    private void merge(InputStream inputStream) {
-        HashMap<String, Integer> toMerge = new HashMap<>();
-        deserializeInto(toMerge, inputStream);
+    private void deserializeMap(InputStream inputStream) {
+        HashMap<String, Integer> received = new HashMap<>();
+        deserializeInto(received, inputStream);
 
-        logger.debug("Received a map to merge: " + toMerge);
+        logger.debug("Received a map: " + received);
 
-        localCopy.putAll(toMerge);
+        localCopy.clear();
+        localCopy.putAll(received);
     }
 
     private void deserializeInto(Map<String, Integer> map, InputStream inputStream) {

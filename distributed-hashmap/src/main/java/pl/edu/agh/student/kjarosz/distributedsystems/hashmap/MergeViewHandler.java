@@ -1,23 +1,21 @@
 package pl.edu.agh.student.kjarosz.distributedsystems.hashmap;
 
 import org.jgroups.JChannel;
+import org.jgroups.MergeView;
 import org.jgroups.View;
 
-import java.util.List;
-
-class MapMerger implements Runnable {
+class MergeViewHandler implements Runnable {
     private final JChannel channel;
-    private final List<View> views;
+    private final MergeView view;
 
-    MapMerger(JChannel channel, List<View> views) {
+    MergeViewHandler(JChannel channel, MergeView view) {
         this.channel = channel;
-        this.views = views;
+        this.view = view;
     }
 
     @Override
     public void run() {
-        views.forEach(this::mergeView);
-
+        mergeView(view.getSubgroups().get(0));
     }
 
     private void mergeView(View view) {

@@ -10,7 +10,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -36,7 +35,7 @@ class MapSynchronizationService implements AutoCloseable {
 
     };
 
-    private Consumer<InputStream> merger = v -> {
+    private Consumer<InputStream> stateDeserializer = v -> {
 
     };
 
@@ -60,7 +59,7 @@ class MapSynchronizationService implements AutoCloseable {
 
             @Override
             public void setState(InputStream input) {
-                merger.accept(input);
+                stateDeserializer.accept(input);
             }
 
             @Override
@@ -68,12 +67,8 @@ class MapSynchronizationService implements AutoCloseable {
                 List<View> views;
                 if (view instanceof MergeView) {
                     MergeView mergeView = (MergeView) view;
-                    views = mergeView.getSubgroups();
-                } else {
-                    views = Collections.singletonList(view);
+                    new Thread(new MergeViewHandler(channel, mergeView)).start();
                 }
-
-                new Thread(new MapMerger(channel, views)).start();
             }
         });
         channel.connect(clusterName);
@@ -127,8 +122,8 @@ class MapSynchronizationService implements AutoCloseable {
         this.stateSerializer = Objects.requireNonNull(stateSerializer);
     }
 
-    void setMerger(Consumer<InputStream> merger) {
-        this.merger = Objects.requireNonNull(merger);
+    void setStateDeserializer(Consumer<InputStream> stateDeserializer) {
+        this.stateDeserializer = Objects.requireNonNull(stateDeserializer);
     }
 
     void synchronizePut(String key, Integer value) {
