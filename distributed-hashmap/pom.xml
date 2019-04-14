@@ -3,8 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>pl.edu.agh.student.kjarosz.distributedsystems</groupId>
-    <artifactId>distributed-hashmap</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <artifactId>distributed-hashmap</artifactId>
     <packaging>jar</packaging>
 
     <properties>
