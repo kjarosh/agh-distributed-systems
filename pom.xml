@@ -10,5 +10,6 @@
     <modules>
         <module>distributed-hashmap</module>
         <module>distributed-hospital</module>
+        <module>distributed-bank</module>
     </modules>
 </project>

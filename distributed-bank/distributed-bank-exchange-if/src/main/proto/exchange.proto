@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "pl.edu.agh.student.kjarosz.distributedsystems.bank.exchange.api";
+
+package bank_exchange;
+
+message ExchangeSubscription {
+    bool cancel = 1;
+    string base_currency = 2;
+    repeated string monitored_currencies = 3;
+}
+
+message ExchangeResponse {
+    string base_currency = 1;
+    string changed_currency = 2;
+    double exchange_rate = 3;
+}
+
+service ExchangeService {
+    rpc monitor_currencies (stream ExchangeSubscription) returns (stream ExchangeResponse) {
+
+    }
+}
