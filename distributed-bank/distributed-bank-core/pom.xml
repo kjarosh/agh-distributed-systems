@@ -12,6 +12,14 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>pl.edu.agh.student.kjarosz.distributedsystems</groupId>
+            <artifactId>distributed-bank-core-if</artifactId>
+        </dependency>
+        <dependency>
             <groupId>pl.edu.agh.student.kjarosz.distributedsystems</groupId>
             <artifactId>distributed-bank-exchange-if</artifactId>
         </dependency>

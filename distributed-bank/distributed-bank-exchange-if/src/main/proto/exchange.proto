@@ -6,19 +6,21 @@ option java_package = "pl.edu.agh.student.kjarosz.distributedsystems.bank.exchan
 package bank_exchange;
 
 message ExchangeSubscription {
-    bool cancel = 1;
-    string base_currency = 2;
-    repeated string monitored_currencies = 3;
+    string base_currency = 1;
+    repeated string monitored_currencies = 2;
 }
 
 message ExchangeResponse {
-    string base_currency = 1;
-    string changed_currency = 2;
-    double exchange_rate = 3;
+    repeated ExchangeChange changes= 2;
+}
+
+message ExchangeChange {
+    string changed_currency = 1;
+    double exchange_rate = 2;
 }
 
 service ExchangeService {
-    rpc monitor_currencies (stream ExchangeSubscription) returns (stream ExchangeResponse) {
+    rpc monitor_currencies (ExchangeSubscription) returns (stream ExchangeResponse) {
 
     }
 }

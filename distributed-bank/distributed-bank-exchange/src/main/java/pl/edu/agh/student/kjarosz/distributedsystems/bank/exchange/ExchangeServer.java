@@ -13,7 +13,7 @@ import java.io.IOException;
 public class ExchangeServer {
     private static final Logger logger = LoggerFactory.getLogger(ExchangeServer.class);
 
-    private int port = 50051;
+    private int port = 9093;
     private Server server;
 
     public static void main(String[] args) throws IOException, InterruptedException {

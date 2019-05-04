@@ -3,81 +3,78 @@ package pl.edu.agh.student.kjarosz.distributedsystems.bank.exchange;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.edu.agh.student.kjarosz.distributedsystems.bank.exchange.api.ExchangeChange;
 import pl.edu.agh.student.kjarosz.distributedsystems.bank.exchange.api.ExchangeResponse;
 import pl.edu.agh.student.kjarosz.distributedsystems.bank.exchange.api.ExchangeSubscription;
 
-import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Kamil Jarosz
  */
-class ExchangeProvider extends Thread implements StreamObserver<ExchangeSubscription> {
+class ExchangeProvider extends Thread {
     private static final Logger logger = LoggerFactory.getLogger(ExchangeProvider.class);
 
     private final Random random = new Random();
+    private final ExchangeSubscription subscription;
 
-    private StreamObserver<ExchangeResponse> responseObserver;
+    private final StreamObserver<ExchangeResponse> responseObserver;
+    private Map<String, Double> rates = new ConcurrentHashMap<>();
 
-    private ConcurrentSkipListSet<String> subscribed = new ConcurrentSkipListSet<>();
-    private AtomicReference<String> baseCurrency = new AtomicReference<>();
-
-    ExchangeProvider(StreamObserver<ExchangeResponse> responseObserver) {
+    ExchangeProvider(ExchangeSubscription subscription, StreamObserver<ExchangeResponse> responseObserver) {
+        this.subscription = subscription;
         this.responseObserver = responseObserver;
     }
 
     @Override
     public void run() {
+        logger.info("Starting exchange provider");
+
+        responseObserver.onNext(generateInitialResponse());
+
         while (!Thread.interrupted()) {
-            String baseCurrency = this.baseCurrency.get();
+            String baseCurrency = subscription.getBaseCurrency();
             String currency = randomCurrency();
-            responseObserver.onNext(generateResponse(baseCurrency, currency));
+            responseObserver.onNext(ExchangeResponse.newBuilder()
+                    .addChanges(generateChange(baseCurrency, currency))
+                    .build());
+
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                break;
+            }
         }
 
         responseObserver.onCompleted();
     }
 
-    @Override
-    public void onNext(ExchangeSubscription subscription) {
-        if (subscription.getCancel()) {
-            subscribed.removeAll(subscription.getMonitoredCurrenciesList());
-        } else {
-            subscribed.addAll(subscription.getMonitoredCurrenciesList());
-        }
-
-        String newBaseCurrency = subscription.getBaseCurrency();
-        if (!newBaseCurrency.isEmpty()) {
-            baseCurrency.set(newBaseCurrency);
-        }
-    }
-
-    @Override
-    public void onError(Throwable t) {
-        logger.error("Client-side error occurred", t);
-        Thread.currentThread().interrupt();
-    }
-
-    @Override
-    public void onCompleted() {
-        logger.debug("A client finished subscription");
-        Thread.currentThread().interrupt();
-    }
-
     private String randomCurrency() {
-        int index = random.nextInt(subscribed.size());
-        Iterator<String> iter = subscribed.iterator();
-        for (int i = 0; i < index; ++i) {
-            iter.next();
-        }
-        return iter.next();
+        int index = random.nextInt(subscription.getMonitoredCurrenciesCount());
+        return subscription.getMonitoredCurrencies(index);
     }
 
-    private ExchangeResponse generateResponse(String baseCurrency, String currency) {
-        double exchangeRate = 0;
+    private ExchangeResponse generateInitialResponse() {
         return ExchangeResponse.newBuilder()
-                .setBaseCurrency(baseCurrency)
+                .addAllChanges(subscription.getMonitoredCurrenciesList().stream()
+                        .map(c -> generateChange(subscription.getBaseCurrency(), c))::iterator)
+                .build();
+    }
+
+    private ExchangeChange generateChange(String baseCurrency, String currency) {
+        logger.info("Currency changed: " + currency);
+
+        double exchangeRate;
+
+        if (baseCurrency.equals(currency)) {
+            exchangeRate = 1;
+        } else {
+            exchangeRate = rates.get(currency) + (random.nextDouble() - 0.5d) / 10;
+        }
+
+        return ExchangeChange.newBuilder()
                 .setChangedCurrency(currency)
                 .setExchangeRate(exchangeRate)
                 .build();

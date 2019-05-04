@@ -1,0 +1,15 @@
+[package]
+name = "distributed-bank-client-if"
+version = "0.1.0"
+authors = ["Kamil Jarosz <kjarosz@student.agh.edu.pl>"]
+edition = "2018"
+
+build = "build.rs"
+
+[lib]
+path = "./target/generated/lib.rs"
+
+[dependencies]
+thrift = "0.12.0"
+ordered-float = "0.3.0"
+try_from = "0.2.0"

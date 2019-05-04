@@ -10,7 +10,7 @@ import pl.edu.agh.student.kjarosz.distributedsystems.bank.exchange.api.ExchangeS
  */
 public class ExchangeServiceImpl extends ExchangeServiceGrpc.ExchangeServiceImplBase {
     @Override
-    public StreamObserver<ExchangeSubscription> monitorCurrencies(StreamObserver<ExchangeResponse> responseObserver) {
-        return new ExchangeProvider(responseObserver);
+    public void monitorCurrencies(ExchangeSubscription subscription, StreamObserver<ExchangeResponse> responseObserver) {
+        new ExchangeProvider(subscription, responseObserver).start();
     }
 }
