@@ -12,7 +12,8 @@ enum AccountType {
 
 struct AccountIdentification {
     1: string pesel,
-    2: string key,
+    2: binary signature,
+    3: i64 seqid,
 }
 
 struct AccountCreationRequest {
@@ -42,6 +43,7 @@ struct LoanAcknowledgement {
 
 exception InvalidAccount {
     1: string message,
+    2: i64 currentSeqid,
 }
 
 exception InvalidCurrency {

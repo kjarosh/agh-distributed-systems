@@ -43,20 +43,20 @@ fn run() -> thrift::Result<()> {
     loop {
         println!("NEW ACCOUNT");
 
-        let ident = create_account(account_management_client)?;
+        let mut ident = create_account(account_management_client)?;
         println!("ident: {}", ident);
 
         if ident.is_premium() {
-            run_premium(host, services_port, &ident)?
+            run_premium(host, services_port, &mut ident)?
         } else {
-            run_standard(host, services_port, &ident)?
+            run_standard(host, services_port, &mut ident)?
         }
     }
 
     Ok(())
 }
 
-fn run_standard(host: &str, services_port: u16, ident: &AccountIdent) -> thrift::Result<()> {
+fn run_standard(host: &str, services_port: u16, ident: &mut AccountIdent) -> thrift::Result<()> {
     let standard_account_client = &mut new_standard_account_client(host, services_port)?;
     loop {
         println!(">>> what do you want to do?");
@@ -64,7 +64,7 @@ fn run_standard(host: &str, services_port: u16, ident: &AccountIdent) -> thrift:
         match input.as_ref() {
             "balance" => {
                 println!("your balance:");
-                println!("{}", get_balance_standard(standard_account_client, &ident)?)
+                println!("{}", get_balance_standard(standard_account_client, ident)?)
             }
             "loan" => println!("broke eh? sorry, cannot help"),
             "switch" => break,
@@ -76,7 +76,7 @@ fn run_standard(host: &str, services_port: u16, ident: &AccountIdent) -> thrift:
     Ok(())
 }
 
-fn run_premium(host: &str, services_port: u16, ident: &AccountIdent) -> thrift::Result<()> {
+fn run_premium(host: &str, services_port: u16, ident: &mut AccountIdent) -> thrift::Result<()> {
     let premium_account_client = &mut new_premium_account_client(host, services_port)?;
     loop {
         println!(">>> what do you want to do?");
@@ -84,7 +84,7 @@ fn run_premium(host: &str, services_port: u16, ident: &AccountIdent) -> thrift::
         match input.as_ref() {
             "balance" => {
                 println!("your balance:");
-                println!("{}", get_balance_premium(premium_account_client, &ident)?)
+                println!("{}", get_balance_premium(premium_account_client, ident)?)
             }
             "loan" => {
                 if !ident.is_premium() {
@@ -98,7 +98,7 @@ fn run_premium(host: &str, services_port: u16, ident: &AccountIdent) -> thrift::
                 let value = read_price();
                 println!(">>> loan duration in days?");
                 let duration = read_line().parse::<i32>().unwrap();
-                let ack = take_loan(premium_account_client, &ident, currency, value, duration)?;
+                let ack = take_loan(premium_account_client, ident, currency, value, duration)?;
                 println!("exchange rate: {}", ack.exchange_rate.unwrap());
                 println!("price: {}", Money::from_i64(ack.price.unwrap()));
                 println!("foreign price: {}", Money::from_i64(ack.foreign_price.unwrap()))
@@ -134,27 +134,27 @@ fn create_account(client: &mut AccountManagementClient) -> thrift::Result<Accoun
         response.type_.unwrap()));
 }
 
-fn get_balance_standard(client: &mut StandardAccountClient, ident: &AccountIdent) -> thrift::Result<Money> {
+fn get_balance_standard(client: &mut StandardAccountClient, ident: &mut AccountIdent) -> thrift::Result<Money> {
     let response =
-        client.account_balance(ident.to_identification())?;
+        client.account_balance(ident.create_identification())?;
     return Ok(Money::from_i64(response));
 }
 
-fn get_balance_premium(client: &mut PremiumAccountClient, ident: &AccountIdent) -> thrift::Result<Money> {
+fn get_balance_premium(client: &mut PremiumAccountClient, ident: &mut AccountIdent) -> thrift::Result<Money> {
     let response =
-        client.account_balance(ident.to_identification())?;
+        client.account_balance(ident.create_identification())?;
     return Ok(Money::from_i64(response));
 }
 
 fn take_loan(
     client: &mut PremiumAccountClient,
-    ident: &AccountIdent,
+    ident: &mut AccountIdent,
     currency: String,
     value: i64,
     duration: i32,
 ) -> thrift::Result<LoanAcknowledgement> {
     let request = LoanRequest::new(currency, value, duration);
     let response =
-        client.take_loan(ident.to_identification(), request)?;
+        client.take_loan(ident.create_identification(), request)?;
     return Ok(response);
 }

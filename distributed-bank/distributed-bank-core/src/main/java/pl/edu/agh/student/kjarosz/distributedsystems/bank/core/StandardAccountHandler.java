@@ -18,10 +18,11 @@ public class StandardAccountHandler implements StandardAccount.Iface {
         this.accountRepository = accountRepository;
     }
 
+    @Override
     public long accountBalance(AccountIdentification accountIdent) throws InvalidAccount {
         logger.info("Asking for account balance: " + accountIdent);
 
-        Account account = accountRepository.find(accountIdent.pesel, accountIdent.key);
+        Account account = accountRepository.find(accountIdent);
         return account.getBalance();
     }
 }

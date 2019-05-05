@@ -1,7 +1,11 @@
 package pl.edu.agh.student.kjarosz.distributedsystems.bank.core;
 
+import pl.edu.agh.student.kjarosz.distributedsystems.bank.api.AccountIdentification;
 import pl.edu.agh.student.kjarosz.distributedsystems.bank.api.InvalidAccount;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -9,22 +13,45 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Kamil Jarosz
  */
 public class AccountRepository {
+    private static final MessageDigest md5;
+
+    static {
+        try {
+            md5 = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError(e);
+        }
+    }
+
     private Map<String, Account> accounts = new ConcurrentHashMap<>();
 
-    public Account find(String pesel, String key) throws InvalidAccount {
-        Account account = accounts.get(pesel);
+    public void addAccount(Account acc) {
+        accounts.put(acc.getPesel(), acc);
+    }
+
+    public Account find(AccountIdentification accountIdent) throws InvalidAccount {
+        Account account = accounts.get(accountIdent.pesel);
         if (account == null) {
             throw new InvalidAccount().setMessage("Account doesn't exist");
         }
 
-        if (!account.getKey().equals(key)) {
-            throw new InvalidAccount().setMessage("Wrong key");
-        }
+        verifySignature(account, accountIdent);
 
         return account;
     }
 
-    public void addAccount(Account acc) {
-        accounts.put(acc.getPesel(), acc);
+    private void verifySignature(Account account, AccountIdentification accountIdent) throws InvalidAccount {
+        long seqid = accountIdent.getSeqid();
+        long expectedSeqid = account.nextSeqid();
+        if (seqid != expectedSeqid) {
+            throw new InvalidAccount().setMessage("Invalid seqid: " + seqid).setCurrentSeqid(expectedSeqid);
+        }
+
+        String document = "" + seqid + ":" + account.getKey();
+        byte[] expectedSignature = md5.digest(document.getBytes());
+
+        if (!Arrays.equals(accountIdent.getSignature(), expectedSignature)) {
+            throw new InvalidAccount().setMessage("Invalid signature").setCurrentSeqid(expectedSeqid);
+        }
     }
 }

@@ -71,7 +71,8 @@ class ExchangeProvider extends Thread {
         if (baseCurrency.equals(currency)) {
             exchangeRate = 1;
         } else {
-            exchangeRate = rates.get(currency) + (random.nextDouble() - 0.5d) / 10;
+            double lastRate = rates.computeIfAbsent(currency, i -> 1d / (random.nextDouble() + 0.5d));
+            exchangeRate = lastRate + (random.nextDouble() - 0.5d) / 10;
         }
 
         return ExchangeChange.newBuilder()

@@ -1,25 +1,34 @@
 use std::fmt;
 
 use distributed_bank_client_if::bank::{AccountIdentification, AccountType};
-use distributed_bank_client_if::bank::AccountType::{Standard, Premium};
+use distributed_bank_client_if::bank::AccountType::{Premium, Standard};
 
 pub struct AccountIdent {
     key: String,
     pesel: String,
+    seqid: i64,
     account_type: AccountType,
 }
 
 impl AccountIdent {
     pub fn new(pesel: String, key: String, account_type: AccountType) -> AccountIdent {
-        AccountIdent { pesel, key, account_type }
+        AccountIdent { pesel, key, account_type, seqid: 0 }
     }
 
-    pub fn to_identification(&self) -> AccountIdentification {
-        AccountIdentification::new(self.pesel.clone(), self.key.clone())
+    pub fn create_identification(&mut self) -> AccountIdentification {
+        let seqid = self.next_seqid();
+        let document = seqid.to_string() + ":" + self.key.as_ref();
+        let signature = md5::compute(document).to_vec();
+        AccountIdentification::new(self.pesel.clone(), signature, seqid)
     }
 
     pub fn is_premium(&self) -> bool {
         self.account_type == Premium
+    }
+
+    pub fn next_seqid(&mut self) -> i64 {
+        self.seqid += 1;
+        self.seqid
     }
 }
 

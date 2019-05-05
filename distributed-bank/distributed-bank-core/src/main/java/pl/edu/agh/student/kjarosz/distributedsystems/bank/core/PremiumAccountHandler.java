@@ -29,7 +29,7 @@ public class PremiumAccountHandler extends StandardAccountHandler implements Pre
             AccountIdentification accountIdent, LoanRequest loanRequest) throws InvalidAccount, InvalidCurrency {
         logger.info("Received request for a loan: " + loanRequest);
 
-        Account account = accountRepository.find(accountIdent.pesel, accountIdent.key);
+        Account account = accountRepository.find(accountIdent);
         if (!account.isPremium()) {
             logger.info("Account is not premium");
             throw new InvalidAccount().setMessage("Account is not Premium");

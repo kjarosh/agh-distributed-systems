@@ -14,6 +14,7 @@ public class Account {
     private String firstName;
     private long salary;
     private AtomicLong balance = new AtomicLong(0);
+    private long seqid = 0;
 
     public String getKey() {
         return key;
@@ -25,14 +26,6 @@ public class Account {
 
     public void addToBalance(long difference) {
         balance.addAndGet(difference);
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
     }
 
     public void setSalary(long monthlySalary) {
@@ -49,5 +42,25 @@ public class Account {
 
     public void setPesel(String pesel) {
         this.pesel = pesel;
+    }
+
+    public long nextSeqid() {
+        return ++seqid;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
     }
 }
