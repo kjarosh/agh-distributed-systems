@@ -21,7 +21,7 @@ class ExchangeProvider extends Thread {
     private final ExchangeSubscription subscription;
 
     private final StreamObserver<ExchangeResponse> responseObserver;
-    private Map<String, Double> rates = new ConcurrentHashMap<>();
+    private final Map<String, Double> rates = new ConcurrentHashMap<>();
 
     ExchangeProvider(ExchangeSubscription subscription, StreamObserver<ExchangeResponse> responseObserver) {
         this.subscription = subscription;

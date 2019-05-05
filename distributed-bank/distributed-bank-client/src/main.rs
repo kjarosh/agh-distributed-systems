@@ -43,13 +43,13 @@ fn run() -> thrift::Result<()> {
     loop {
         println!("NEW ACCOUNT");
 
-        let mut ident = create_account(account_management_client)?;
+        let ident = &mut create_account(account_management_client)?;
         println!("ident: {}", ident);
 
         if ident.is_premium() {
-            run_premium(host, services_port, &mut ident)?
+            run_premium(host, services_port, ident)?
         } else {
-            run_standard(host, services_port, &mut ident)?
+            run_standard(host, services_port, ident)?
         }
     }
 
@@ -68,7 +68,7 @@ fn run_standard(host: &str, services_port: u16, ident: &mut AccountIdent) -> thr
             }
             "loan" => println!("broke eh? sorry, cannot help"),
             "switch" => break,
-            "exit" => return Ok(()),
+            "exit" => std::process::exit(0),
             _ => println!("unknown command"),
         }
     }
