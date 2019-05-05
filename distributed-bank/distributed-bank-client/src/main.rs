@@ -40,10 +40,11 @@ fn run() -> thrift::Result<()> {
 
     let account_management_client = &mut new_account_management_client(host, management_port)?;
 
-    loop {
-        println!("NEW ACCOUNT");
+    let mut accounts: Vec<AccountIdent> = Vec::new();
 
-        let ident = &mut create_account(account_management_client)?;
+    loop {
+        let account_ix = select_account(&mut accounts, account_management_client)?;
+        let ident = &mut accounts[account_ix];
         println!("ident: {}", ident);
 
         if ident.is_premium() {
@@ -98,10 +99,16 @@ fn run_premium(host: &str, services_port: u16, ident: &mut AccountIdent) -> thri
                 let value = read_price();
                 println!(">>> loan duration in days?");
                 let duration = read_line().parse::<i32>().unwrap();
-                let ack = take_loan(premium_account_client, ident, currency, value, duration)?;
-                println!("exchange rate: {}", ack.exchange_rate.unwrap());
-                println!("price: {}", Money::from_i64(ack.price.unwrap()));
-                println!("foreign price: {}", Money::from_i64(ack.foreign_price.unwrap()))
+                match take_loan(premium_account_client, ident, currency, value, duration) {
+                    Ok(ack) => {
+                        println!("exchange rate: {}", ack.exchange_rate.unwrap());
+                        println!("price: {}", Money::from_i64(ack.price.unwrap()));
+                        println!("foreign price: {}", Money::from_i64(ack.foreign_price.unwrap()))
+                    },
+                    Err(e) => {
+                        println!("error {:?}", e);
+                    }
+                }
             }
             "switch" => break,
             "exit" => return Ok(()),
@@ -110,28 +117,6 @@ fn run_premium(host: &str, services_port: u16, ident: &mut AccountIdent) -> thri
     }
 
     Ok(())
-}
-
-fn create_account(client: &mut AccountManagementClient) -> thrift::Result<AccountIdent> {
-    println!("first name: ", );
-    let first_name = read_line();
-    println!("last name: ");
-    let last_name = read_line();
-    println!("pesel: ");
-    let pesel = read_line();
-    println!("monthly salary: ");
-    let salary = read_price();
-    let request = AccountCreationRequest::new(
-        first_name.to_owned(),
-        last_name.to_owned(),
-        pesel.to_owned(),
-        salary);
-    let response =
-        client.create_account(request)?;
-    return Ok(AccountIdent::new(
-        pesel.to_owned(),
-        response.key.unwrap(),
-        response.type_.unwrap()));
 }
 
 fn get_balance_standard(client: &mut StandardAccountClient, ident: &mut AccountIdent) -> thrift::Result<Money> {
@@ -157,4 +142,56 @@ fn take_loan(
     let response =
         client.take_loan(ident.create_identification(), request)?;
     return Ok(response);
+}
+
+fn select_account(
+    accounts: &mut Vec<AccountIdent>,
+    client: &mut AccountManagementClient
+) -> thrift::Result<usize> {
+    println!("Options:");
+    println!("1) New Account");
+    let mut i = 2;
+    for acc in accounts.iter_mut() {
+        println!("{}) {}", i, acc);
+        i += 1;
+    }
+
+    loop {
+        match read_line().parse::<usize>() {
+            Ok(val) => {
+                if val == 1 {
+                    let account = create_account(client)?;
+                    accounts.push(account);
+                    return Ok(accounts.len() - 1);
+                }
+
+                return Ok(val - 2);
+            }
+            Err(_) => continue
+        }
+    }
+}
+
+fn create_account(client: &mut AccountManagementClient) -> thrift::Result<AccountIdent> {
+    println!("first name: ", );
+    let first_name = read_line();
+    println!("last name: ");
+    let last_name = read_line();
+    println!("pesel: ");
+    let pesel = read_line();
+    println!("monthly salary: ");
+    let salary = read_price();
+    let request = AccountCreationRequest::new(
+        first_name.to_owned(),
+        last_name.to_owned(),
+        pesel.to_owned(),
+        salary);
+    let response =
+        client.create_account(request)?;
+    return Ok(AccountIdent::new(
+        first_name.to_owned(),
+        last_name.to_owned(),
+        pesel.to_owned(),
+        response.key.unwrap(),
+        response.type_.unwrap()));
 }

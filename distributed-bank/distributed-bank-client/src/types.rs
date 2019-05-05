@@ -4,6 +4,8 @@ use distributed_bank_client_if::bank::{AccountIdentification, AccountType};
 use distributed_bank_client_if::bank::AccountType::{Premium, Standard};
 
 pub struct AccountIdent {
+    first_name: String,
+    last_name: String,
     key: String,
     pesel: String,
     seqid: i64,
@@ -11,8 +13,8 @@ pub struct AccountIdent {
 }
 
 impl AccountIdent {
-    pub fn new(pesel: String, key: String, account_type: AccountType) -> AccountIdent {
-        AccountIdent { pesel, key, account_type, seqid: 0 }
+    pub fn new(first_name: String, last_name: String, pesel: String, key: String, account_type: AccountType) -> AccountIdent {
+        AccountIdent { first_name, last_name, pesel, key, account_type, seqid: 0 }
     }
 
     pub fn create_identification(&mut self) -> AccountIdentification {
@@ -34,6 +36,10 @@ impl AccountIdent {
 
 impl fmt::Display for AccountIdent {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.write_str(&self.first_name)?;
+        fmt.write_str(" ")?;
+        fmt.write_str(&self.last_name)?;
+        fmt.write_str("  ")?;
         fmt.write_str(&self.pesel)?;
         fmt.write_str(":")?;
         fmt.write_str(&self.key)?;

@@ -57,6 +57,6 @@ public class PremiumAccountHandler extends StandardAccountHandler implements Pre
     }
 
     private long calculateLoanPrice(LoanRequest loanRequest) {
-        return loanRequest.duration * loanRequest.value / 1000;
+        return loanRequest.duration * loanRequest.value / 10000;
     }
 }
