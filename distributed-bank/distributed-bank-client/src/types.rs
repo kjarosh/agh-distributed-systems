@@ -19,7 +19,7 @@ impl AccountIdent {
 
     pub fn create_identification(&mut self) -> AccountIdentification {
         let seqid = self.next_seqid();
-        let document = seqid.to_string() + ":" + self.key.as_ref();
+        let document = self.pesel.clone() + ":" + seqid.to_string().as_ref() + ":" + self.key.as_ref();
         let signature = md5::compute(document).to_vec();
         AccountIdentification::new(self.pesel.clone(), signature, seqid)
     }

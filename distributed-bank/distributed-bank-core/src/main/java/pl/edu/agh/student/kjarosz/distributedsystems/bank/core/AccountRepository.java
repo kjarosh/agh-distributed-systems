@@ -47,7 +47,7 @@ public class AccountRepository {
             throw new InvalidAccount().setMessage("Invalid seqid: " + seqid).setCurrentSeqid(expectedSeqid);
         }
 
-        String document = "" + seqid + ":" + account.getKey();
+        String document = "" + account.getPesel() + ":" + seqid + ":" + account.getKey();
         byte[] expectedSignature = md5.digest(document.getBytes());
 
         if (!Arrays.equals(accountIdent.getSignature(), expectedSignature)) {
