@@ -23,6 +23,13 @@ class ExchangeProvider extends Thread {
     private final StreamObserver<ExchangeResponse> responseObserver;
     private final Map<String, Double> rates = new ConcurrentHashMap<>();
 
+    {
+        rates.put("JPY", 29.1d);
+        rates.put("CHF", 0.27d);
+        rates.put("USD", 0.26d);
+        rates.put("EUR", 0.23d);
+    }
+
     ExchangeProvider(ExchangeSubscription subscription, StreamObserver<ExchangeResponse> responseObserver) {
         this.subscription = subscription;
         this.responseObserver = responseObserver;

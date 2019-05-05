@@ -49,7 +49,7 @@ public class ExchangeRateService {
                 try {
                     logger.info("Received currency rates: " + response.getChangesList()
                             .stream()
-                            .map(ExchangeChange::getChangedCurrency)
+                            .map(ch -> ch.getChangedCurrency() + "=" + ch.getExchangeRate())
                             .collect(Collectors.toList()));
                     for (ExchangeChange change : response.getChangesList()) {
                         currencies.put(change.getChangedCurrency(), change.getExchangeRate());
