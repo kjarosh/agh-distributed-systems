@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author Kamil Jarosz
  */
-class ExchangeProvider extends Thread {
+class ExchangeProvider implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(ExchangeProvider.class);
 
     private final Random random = new Random();

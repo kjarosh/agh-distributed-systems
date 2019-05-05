@@ -66,7 +66,9 @@ public class BankServer {
 
             TServerTransport serverTransport = new TServerSocket(servicesPort);
             TProtocolFactory protocolFactory = new TBinaryProtocol.Factory();
-            TServer server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).protocolFactory(protocolFactory).processor(processor1));
+            TServer server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport)
+                    .protocolFactory(protocolFactory)
+                    .processor(processor1));
 
             System.out.println("Starting account services");
             server.serve();
@@ -82,7 +84,9 @@ public class BankServer {
 
             TServerTransport serverTransport = new TServerSocket(managementPort);
             TProtocolFactory protocolFactory = new TBinaryProtocol.Factory();
-            TServer server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).protocolFactory(protocolFactory).processor(processor1));
+            TServer server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport)
+                    .protocolFactory(protocolFactory)
+                    .processor(processor1));
 
             System.out.println("Starting account management");
             server.serve();

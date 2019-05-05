@@ -12,9 +12,9 @@ import pl.edu.agh.student.kjarosz.distributedsystems.bank.exchange.api.ExchangeS
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.OptionalDouble;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -28,7 +28,7 @@ public class ExchangeRateService {
     private static final Logger logger = LoggerFactory.getLogger(ExchangeRateService.class);
 
     private final ManagedChannel channel;
-    private final Map<String, Double> currencies = new ConcurrentHashMap<>();
+    private final Map<String, Double> currencies = new HashMap<>();
     private final Lock currenciesLock = new ReentrantLock();
     private final Condition noCurrency = currenciesLock.newCondition();
 
