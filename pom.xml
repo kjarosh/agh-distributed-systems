@@ -7,10 +7,15 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
     <modules>
         <module>distributed-hashmap</module>
         <module>distributed-hospital</module>
         <module>distributed-bank</module>
         <module>distributed-bookstore</module>
+        <module>zookeeper</module>
     </modules>
 </project>
